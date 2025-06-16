@@ -1,27 +1,41 @@
-import express, { Request, Response } from 'express';
+import { Router } from 'express';
 import Url from '../models/url.model';
 import { nanoid } from 'nanoid';
 
-const router = express.Router();
+const router = Router();
 
-router.post('/shorten', async (req: Request, res: Response) => {
-  const { originalUrl } = req.body;
+router.post('/shorten', async function (req, res) {
+  try {
+    const { originalUrl } = req.body;
 
-  if (!originalUrl) return res.status(400).json({ error: 'Missing URL' });
+    if (!originalUrl) {
+      return res.status(400).json({ error: 'Missing URL' });
+    }
 
-  const shortId = nanoid(6);
-  const newUrl = await Url.create({ originalUrl, shortId });
+    const shortId = nanoid(6);
+    const newUrl = await Url.create({ originalUrl, shortId });
 
-  res.json({ shortUrl: `${process.env.BASE_URL}/${shortId}` });
+    return res.json({ shortUrl: `${process.env.BASE_URL}/${shortId}` });
+  } catch (error) {
+    console.error('Error in POST /shorten:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
 });
 
-router.get('/:shortId', async (req: Request, res: Response) => {
-  const { shortId } = req.params;
+router.get('/:shortId', async function (req, res) {
+  try {
+    const { shortId } = req.params;
+    const urlEntry = await Url.findOne({ shortId });
 
-  const urlEntry = await Url.findOne({ shortId });
-  if (!urlEntry) return res.status(404).send('Not found');
+    if (!urlEntry) {
+      return res.status(404).send('Not found');
+    }
 
-  res.redirect(urlEntry.originalUrl);
+    return res.redirect(urlEntry.originalUrl);
+  } catch (error) {
+    console.error('Error in GET /:shortId:', error);
+    return res.status(500).send('Server error');
+  }
 });
 
 export default router;
